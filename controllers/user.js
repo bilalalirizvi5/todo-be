@@ -1,12 +1,11 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const sendgridTransport = require("nodemailer-sendgrid-transport");
 
 const User = require("../models/User");
 
-const randomCode = () => {
-  return Math.random().toString(36).substr(2, 8).toUpperCase();
-};
+// const randomCode = () => {
+//   return Math.random().toString(36).substr(2, 8).toUpperCase();
+// };
 
 exports.createUser = (req, res) => {
   try {
@@ -16,7 +15,7 @@ exports.createUser = (req, res) => {
     User.findOne({ email }).then(async (doc) => {
       if (doc) {
         return res.status(400).json({
-          message: "Admin/User with same email is already registered!",
+          message: "User with same email is already registered!",
         });
       } else {
         if (password.length >= 8) {
@@ -24,7 +23,6 @@ exports.createUser = (req, res) => {
             let payload = {
               email,
               userName,
-              passwordRecoveryToken: randomCode(),
               password: hashedPassword,
             };
             User.create(payload)
@@ -52,6 +50,62 @@ exports.createUser = (req, res) => {
     console.log(err);
     return res.status(500).json(err);
   }
+};
+
+exports.login = (req, res, next) => {
+  console.log("=========>", req.body);
+  const email = req.body.email?.toLowerCase();
+  const password = req.body.password;
+  let loadedUser = "";
+
+  User.findOne({ email })
+    .then(async (res) => {
+      console.log("res", res);
+      if (res) {
+        loadedUser = res;
+        return bcrypt.compare(password, res.password);
+      } else {
+        const error = new Error("No User found by this email");
+        error.statusCode = 401;
+        throw error;
+      }
+    })
+    .then((isEqual) => {
+      if (!isEqual) {
+        const error = new Error("Invalid Password");
+        error.statusCode = 400;
+        throw error;
+      }
+
+      const token = jwt.sign(
+        {
+          userId: loadedUser._id,
+        },
+        process.env.JWT_SECRET
+      );
+
+      res.status(200).json({
+        message: "Logged In Succesfully",
+        token: token,
+        user: loadedUser,
+      });
+    })
+    .catch((err) => {
+      console.log(err);
+      if (err.statusCode === 401) {
+        res.status(401).json({
+          message: "No User found by this email",
+        });
+      } else if (err.statusCode === 400) {
+        res.status(400).json({
+          message: "Invalid Password",
+        });
+      } else {
+        res.status(500).json({
+          message: "Internal Server Error",
+        });
+      }
+    });
 };
 
 // exports.getAllUsers = async (req, res) => {
@@ -112,69 +166,6 @@ exports.createUser = (req, res) => {
 //     console.log(err);
 //     return res.status(500).json(err);
 //   }
-// };
-
-// exports.login = (req, res, next) => {
-//   const email = req.body.email.toLowerCase();
-//   const password = req.body.password;
-//   let loadedUser = "";
-
-//   User.findOne({ email })
-//     .then(async (res) => {
-//       if (res) {
-//         loadedUser = res;
-
-//         return bcrypt.compare(password, res.password);
-//       } else {
-//         const error = new Error("No Admin/User found by this email");
-//         error.statusCode = 401;
-//         throw error;
-//       }
-//     })
-//     .then((isEqual) => {
-//       if (!isEqual) {
-//         const error = new Error("Invalid Password");
-//         error.statusCode = 400;
-//         throw error;
-//       }
-
-//       const token = jwt.sign(
-//         {
-//           userId: loadedUser._id
-//         },
-//         "4=?ADE56GJMC2%7&kF%HTqy8CfTZuj5e2aTKy2g!^F-W%7uP$cUqfuWcQxyVP*ez"
-//       );
-
-//       res.status(200).json({
-//         message: "Logged In Succesfully",
-//         token: token,
-//         user: {
-//           name: loadedUser?.userName,
-//           _id: loadedUser._id,
-//           adminId: loadedUser?.type === "user" ? loadedUser?.admin : null,
-//           blocked: loadedUser?.status === "deactivate"
-//         },
-//         role: loadedUser?.role || "headAuditor",
-//         type: loadedUser?.type || "admin",
-//         permissions: loadedUser?.permissions || []
-//       });
-//     })
-//     .catch((err) => {
-//       console.log(err);
-//       if (err.statusCode === 401) {
-//         res.status(401).json({
-//           message: "No Admin/User found by this email"
-//         });
-//       } else if (err.statusCode === 400) {
-//         res.status(400).json({
-//           message: "Invalid Password"
-//         });
-//       } else {
-//         res.status(500).json({
-//           message: "Internal Server Error"
-//         });
-//       }
-//     });
 // };
 
 // exports.forgetPassword = (req, res, next) => {
