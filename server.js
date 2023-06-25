@@ -27,7 +27,8 @@ app.listen(PORT, () => {
   console.log(`Server is Connected with port ${PORT}`);
 });
 
-const main = async () => {
+// START DATABASE
+(async () => {
   try {
     const DB_NAME = encodeURIComponent(process.env.NAME);
     const DB_PASS = encodeURIComponent(process.env.PASSWORD);
@@ -43,5 +44,4 @@ const main = async () => {
   } catch ({ message }) {
     console.log("Database Connection Error:", message);
   }
-};
-main();
+})();

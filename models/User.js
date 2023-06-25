@@ -16,6 +16,10 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
+    passwordRecoveryToken: {
+      type: String,
+      required: false,
+    },
   },
   { timestamps: true }
 );
