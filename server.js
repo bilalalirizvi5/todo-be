@@ -8,17 +8,15 @@ const mongoose = require("mongoose");
 const app = express();
 http.createServer(app);
 
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
 //init middleware
 app.use(express.json({ extended: false }));
 app.use(cors());
 
-// app.listen(5000, () => console.log(`Server listening at port ${port}`));
-
 app.get("/", (req, res) =>
   res.json({
-    message: "Server Running" + ` at port ${port} v 1.0.0`,
+    message: "Server Running" + ` at port ${PORT} v 1.0.0`,
   })
 );
 
@@ -30,18 +28,25 @@ app.use("/user", (req, res) => {
   });
 });
 
-mongoose
-  .connect(process.env.MONGO_URL, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    // useFindAndModify: false,
-  })
-  .then(() => console.log("db"))
-  .catch((err) => console.log(err))
-  .then((result) => {
-    app.listen(port);
-    console.log(`Connected to PORT ${port} `);
-  })
-  .catch((err) => {
-    console.log(err);
-  });
+app.listen(PORT, () => {
+  console.log(`Server is Connected with port ${PORT}`);
+});
+
+const main = async () => {
+  try {
+    const DB_NAME = encodeURIComponent(process.env.NAME);
+    const DB_PASS = encodeURIComponent(process.env.PASSWORD);
+    const DB_CLUSTER = process.env.CLUSTER;
+    const DB = process.env.DB;
+    const databaseURI = `mongodb+srv://${DB_NAME}:${DB_PASS}@${DB_CLUSTER}/${DB}?retryWrites=true&w=majority`;
+    const options = {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    };
+    await mongoose.connect(databaseURI, options);
+    console.log("Database Connected");
+  } catch ({ message }) {
+    console.log("Database Connection Error:", message);
+  }
+};
+main();
