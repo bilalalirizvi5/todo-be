@@ -1,6 +1,5 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-
 const User = require("../models/User");
 
 const randomCode = () => {
@@ -105,4 +104,40 @@ exports.login = (req, res) => {
         });
       }
     });
+};
+
+exports.updateUser = async (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  const { email, password, userName, photoUrl } = req.body;
+
+  try {
+    const decodedToken = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findOne({ _id: decodedToken.userId });
+
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "User not found or unauthorized access" });
+    }
+
+    if (email !== undefined) {
+      user.email = email;
+    }
+    if (password !== undefined) {
+      const hashedPassword = await bcrypt.hash(password, 12);
+      user.password = hashedPassword;
+    }
+    if (userName !== undefined) {
+      user.userName = userName;
+    }
+    if (photoUrl !== undefined) {
+      user.photoUrl = photoUrl;
+    }
+
+    await user.save();
+    return res.status(200).json({ message: "User updated successfully" });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
 };
